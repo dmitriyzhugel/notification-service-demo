@@ -24,7 +24,7 @@ class ProcessNotification implements ShouldQueue
 
     public function handle(ProviderFactory $factory): void
     {
-        // Increment attempts atomically outside the transaction so it persists even when the job re-throws for retry
+        // Инкрементируем попытки атомарно вне транзакции, чтобы счётчик сохранялся даже при повторном выбросе исключения для retry
         Notification::where('id', $this->notificationId)
             ->whereNotIn('status', [
                 NotificationStatus::Sent->value,
@@ -38,7 +38,7 @@ class ProcessNotification implements ShouldQueue
                 ->lockForUpdate()
                 ->findOrFail($this->notificationId);
 
-            // Skip if a concurrent worker already processed this notification
+            // Пропускаем, если параллельный воркер уже обработал это уведомление
             if (in_array($notification->status, [
                 NotificationStatus::Sent,
                 NotificationStatus::Delivered,
