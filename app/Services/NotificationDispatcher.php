@@ -9,6 +9,7 @@ use App\Jobs\ProcessNotification;
 use App\Models\Notification;
 use App\Models\NotificationBatch;
 use App\Models\Subscriber;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 class NotificationDispatcher
@@ -27,7 +28,7 @@ class NotificationDispatcher
             ])
             : null;
 
-        if ($dto->idempotencyKey && $payloadHash) {
+        if ($dto->idempotencyKey) {
             $cached = $this->idempotencyGuard->check($dto->idempotencyKey, $payloadHash);
 
             if ($cached !== null) {
@@ -35,53 +36,77 @@ class NotificationDispatcher
             }
         }
 
-        $batch = DB::transaction(function () use ($dto): NotificationBatch {
-            $batch = NotificationBatch::create([
-                'idempotency_key' => $dto->idempotencyKey,
-                'channel'         => $dto->channel,
-                'message'         => $dto->message,
-                'priority'        => $dto->priority,
-                'total_recipients'=> count($dto->recipientIds),
-                'status'          => BatchStatus::Processing,
-            ]);
+        try {
+            $batch = DB::transaction(function () use ($dto, $payloadHash): NotificationBatch {
+                $recipientIds = array_values(array_unique($dto->recipientIds));
 
-            foreach (array_chunk($dto->recipientIds, 500) as $chunk) {
-                $rows = [];
+                $batch = NotificationBatch::create([
+                    'idempotency_key'  => $dto->idempotencyKey,
+                    'channel'          => $dto->channel,
+                    'message'          => $dto->message,
+                    'priority'         => $dto->priority,
+                    'total_recipients' => count($recipientIds),
+                    'status'           => BatchStatus::Processing,
+                ]);
 
-                foreach ($chunk as $externalId) {
-                    $subscriber = Subscriber::firstOrCreate(['external_id' => $externalId]);
+                foreach (array_chunk($recipientIds, 500) as $chunk) {
+                    // Bulk insert to avoid N+1 queries and unique constraint races
+                    Subscriber::insertOrIgnore(
+                        array_map(fn ($id) => [
+                            'external_id' => $id,
+                            'created_at'  => now(),
+                            'updated_at'  => now(),
+                        ], $chunk)
+                    );
 
-                    $rows[] = [
-                        'batch_id'      => $batch->id,
-                        'subscriber_id' => $subscriber->id,
-                        'channel'       => $dto->channel->value,
-                        'message'       => $dto->message,
-                        'priority'      => $dto->priority->value,
-                        'status'        => NotificationStatus::Queued->value,
-                        'attempts'      => 0,
-                        'created_at'    => now(),
-                        'updated_at'    => now(),
-                    ];
+                    $subscriberMap = Subscriber::whereIn('external_id', $chunk)
+                        ->pluck('id', 'external_id');
+
+                    $rows = [];
+                    foreach ($chunk as $externalId) {
+                        $rows[] = [
+                            'batch_id'      => $batch->id,
+                            'subscriber_id' => $subscriberMap[$externalId],
+                            'channel'       => $dto->channel->value,
+                            'message'       => $dto->message,
+                            'priority'      => $dto->priority->value,
+                            'status'        => NotificationStatus::Queued->value,
+                            'attempts'      => 0,
+                            'created_at'    => now(),
+                            'updated_at'    => now(),
+                        ];
+                    }
+
+                    Notification::insert($rows);
                 }
 
-                Notification::insert($rows);
+                if ($dto->idempotencyKey) {
+                    $this->idempotencyGuard->store(
+                        $dto->idempotencyKey,
+                        $payloadHash,
+                        ['batch_id' => $batch->id],
+                        $batch->id
+                    );
+                }
+
+                return $batch;
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            // A concurrent request with the same idempotency key committed first
+            if ($dto->idempotencyKey) {
+                $cached = $this->idempotencyGuard->check($dto->idempotencyKey, $payloadHash);
+                if ($cached !== null) {
+                    return NotificationBatch::findOrFail($cached['batch_id']);
+                }
             }
-
-            return $batch;
-        });
-
-        if ($dto->idempotencyKey && $payloadHash) {
-            $this->idempotencyGuard->store(
-                $dto->idempotencyKey,
-                $payloadHash,
-                ['batch_id' => $batch->id],
-                $batch->id
-            );
+            throw $e;
         }
 
-        $batch->notifications()->each(function (Notification $notification) use ($dto): void {
-            ProcessNotification::dispatch($notification->id)
-                ->onQueue($dto->priority->queue());
+        $queue = $dto->priority->queue();
+        $batch->notifications()->select('id')->chunkById(100, function ($notifications) use ($queue): void {
+            foreach ($notifications as $notification) {
+                ProcessNotification::dispatch($notification->id)->onQueue($queue);
+            }
         });
 
         return $batch;

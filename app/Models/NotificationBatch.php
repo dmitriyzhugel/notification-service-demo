@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BatchStatus;
 use App\Enums\Channel;
+use App\Enums\NotificationStatus;
 use App\Enums\Priority;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,7 +37,10 @@ class NotificationBatch extends Model
     public function isComplete(): bool
     {
         return ! $this->notifications()
-            ->whereIn('status', ['queued', 'sent'])
+            ->whereIn('status', [
+                NotificationStatus::Queued->value,
+                NotificationStatus::Sent->value,
+            ])
             ->exists();
     }
 }

@@ -20,7 +20,7 @@ class DispatchNotificationRequest extends FormRequest
             'channel'         => ['required', Rule::enum(Channel::class)],
             'message'         => ['required', 'string', 'max:2000'],
             'recipient_ids'   => ['required', 'array', 'min:1', 'max:10000'],
-            'recipient_ids.*' => ['required', 'string', 'max:128'],
+            'recipient_ids.*' => ['required', 'string', 'max:128', 'distinct'],
             'priority'        => ['sometimes', 'nullable', Rule::enum(Priority::class)],
         ];
     }

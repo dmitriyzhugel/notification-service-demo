@@ -8,13 +8,20 @@ use PhpAmqpLib\Wire\AMQPTable;
 
 class QueueServiceProvider extends ServiceProvider
 {
+    private static bool $topologyDeclared = false;
+
     public function boot(): void
     {
         if ($this->app->runningUnitTests() || config('queue.default') !== 'rabbitmq') {
             return;
         }
 
+        if (self::$topologyDeclared) {
+            return;
+        }
+
         $this->declareTopology();
+        self::$topologyDeclared = true;
     }
 
     private function declareTopology(): void

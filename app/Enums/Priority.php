@@ -9,6 +9,9 @@ enum Priority: string
 
     public function queue(): string
     {
-        return config('notifications.queues.' . $this->value);
+        return config('notifications.queues.' . $this->value, match ($this) {
+            Priority::High => 'notifications.transactional',
+            Priority::Low  => 'notifications.marketing',
+        });
     }
 }

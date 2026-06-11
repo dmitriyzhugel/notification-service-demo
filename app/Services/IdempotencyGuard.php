@@ -68,6 +68,7 @@ class IdempotencyGuard
             'recipient_ids' => $payload['recipient_ids'] ?? [],
         ];
 
+        $canonical['recipient_ids'] = array_values(array_unique($canonical['recipient_ids']));
         sort($canonical['recipient_ids']);
 
         return hash('sha256', json_encode($canonical));
