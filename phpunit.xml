@@ -32,5 +32,10 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="SMS_PROVIDER" value="mock"/>
+        <env name="EMAIL_PROVIDER" value="mock"/>
+        <env name="NOTIFICATION_RETRY_MAX_ATTEMPTS" value="3"/>
+        <env name="NOTIFICATION_RETRY_BASE_DELAY" value="0"/>
+        <env name="NOTIFICATION_IDEMPOTENCY_TTL" value="3600"/>
     </php>
 </phpunit>

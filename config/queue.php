@@ -89,6 +89,44 @@ return [
             ],
         ],
 
+        'rabbitmq' => [
+            'driver'   => 'rabbitmq',
+            'worker'   => env('RABBITMQ_WORKER', 'default'),
+            'dsn'      => env('RABBITMQ_DSN'),
+            'hosts'    => [
+                [
+                    'host'     => env('RABBITMQ_HOST', '127.0.0.1'),
+                    'port'     => (int) env('RABBITMQ_PORT', 5672),
+                    'user'     => env('RABBITMQ_USER', 'guest'),
+                    'password' => env('RABBITMQ_PASSWORD', 'guest'),
+                    'vhost'    => env('RABBITMQ_VHOST', '/'),
+                ],
+            ],
+            'options'  => [
+                'ssl_options' => [
+                    'cafile'      => env('RABBITMQ_SSL_CAFILE'),
+                    'local_cert'  => env('RABBITMQ_SSL_LOCALCERT'),
+                    'local_key'   => env('RABBITMQ_SSL_LOCALKEY'),
+                    'verify_peer' => env('RABBITMQ_SSL_VERIFY_PEER', true),
+                    'passphrase'  => env('RABBITMQ_SSL_PASSPHRASE'),
+                ],
+                'queue' => [
+                    'exchange'              => 'notifications',
+                    'exchange_type'         => 'direct',
+                    'exchange_routing_key'  => '',
+                    'reroute_failed'        => false,
+                    'quorum'                => false,
+                    'prioritize_delayed'    => false,
+                    'queue_max_priority'    => null,
+                    'dead_letter_exchange'  => 'notifications.dlx',
+                    'dead_letter_routing_key' => null,
+                    'max_length'            => null,
+                    'max_length_bytes'      => null,
+                ],
+            ],
+            'after_commit' => false,
+        ],
+
     ],
 
     /*

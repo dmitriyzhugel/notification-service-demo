@@ -57,15 +57,15 @@ services:
       retries: 3
       start_period: 30s
 
-  queue:
+  queue-transactional:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: notification_queue
+    container_name: notification_queue_transactional
     restart: unless-stopped
     user: "www-data"
     working_dir: /var/www/html
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    command: php artisan queue:work rabbitmq --sleep=3 --tries=5 --max-time=3600 --queue=notifications.transactional
     volumes:
       - .:/var/www/html
     environment:
@@ -87,6 +87,52 @@ services:
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - RABBITMQ_VHOST=${RABBITMQ_VHOST:-/}
       - QUEUE_CONNECTION=${QUEUE_CONNECTION:-rabbitmq}
+      - SMS_PROVIDER=${SMS_PROVIDER:-mock}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mock}
+    depends_on:
+      app:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - notification-service-network
+
+  queue-marketing:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: notification_queue_marketing
+    restart: unless-stopped
+    user: "www-data"
+    working_dir: /var/www/html
+    command: php artisan queue:work rabbitmq --sleep=3 --tries=5 --max-time=3600 --queue=notifications.marketing
+    volumes:
+      - .:/var/www/html
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${APP_KEY}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-null}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST:-/}
+      - QUEUE_CONNECTION=${QUEUE_CONNECTION:-rabbitmq}
+      - SMS_PROVIDER=${SMS_PROVIDER:-mock}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mock}
     depends_on:
       app:
         condition: service_healthy
