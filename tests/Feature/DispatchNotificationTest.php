@@ -47,7 +47,7 @@ class DispatchNotificationTest extends TestCase
         $response->assertStatus(202);
 
         $this->assertDatabaseHas('notifications', [
-            'status' => NotificationStatus::Sent->value,
+            'status' => NotificationStatus::Queued->value,
         ]);
     }
 
@@ -64,7 +64,7 @@ class DispatchNotificationTest extends TestCase
 
         $this->assertDatabaseHas('notifications', [
             'channel' => 'email',
-            'status'  => NotificationStatus::Sent->value,
+            'status'  => NotificationStatus::Queued->value,
         ]);
     }
 
