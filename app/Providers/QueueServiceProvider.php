@@ -40,21 +40,21 @@ class QueueServiceProvider extends ServiceProvider
             $channel = $connection->channel();
 
             // Объявляем обменники
-            $channel->exchange_declare('notifications',     'direct', false, true, false);
+            $channel->exchange_declare('notifications', 'direct', false, true, false);
             $channel->exchange_declare('notifications.dlx', 'fanout', false, true, false);
 
             $dlxArgs = new AMQPTable(['x-dead-letter-exchange' => 'notifications.dlx']);
 
             // Объявляем основные очереди с маршрутизацией через DLX
             $channel->queue_declare('notifications.transactional', false, true, false, false, false, $dlxArgs);
-            $channel->queue_declare('notifications.marketing',     false, true, false, false, false, $dlxArgs);
+            $channel->queue_declare('notifications.marketing', false, true, false, false, false, $dlxArgs);
 
             // Объявляем очередь недоставленных сообщений
             $channel->queue_declare('notifications.dead', false, true, false, false);
 
             // Привязываем основные очереди к обменнику
             $channel->queue_bind('notifications.transactional', 'notifications', 'transactional');
-            $channel->queue_bind('notifications.marketing',     'notifications', 'marketing');
+            $channel->queue_bind('notifications.marketing', 'notifications', 'marketing');
 
             // Привязываем очередь недоставленных сообщений к DLX
             $channel->queue_bind('notifications.dead', 'notifications.dlx', '#');

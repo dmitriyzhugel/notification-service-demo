@@ -20,7 +20,9 @@ class ProcessNotification implements ShouldQueue
     public int $tries         = 0;
     public int $maxExceptions = 5;
 
-    public function __construct(public readonly int $notificationId) {}
+    public function __construct(public readonly int $notificationId)
+    {
+    }
 
     public function handle(ProviderFactory $factory): void
     {

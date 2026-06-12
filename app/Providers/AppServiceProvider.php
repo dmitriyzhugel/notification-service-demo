@@ -16,5 +16,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationDispatcher::class);
     }
 
-    public function boot(): void {}
+    public function boot(): void
+    {
+    }
 }

@@ -8,5 +8,6 @@ readonly class SendResult
         public bool   $success,
         public string $providerMessageId = '',
         public string $errorMessage      = '',
-    ) {}
+    ) {
+    }
 }

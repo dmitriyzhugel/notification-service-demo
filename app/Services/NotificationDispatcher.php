@@ -16,7 +16,8 @@ class NotificationDispatcher
 {
     public function __construct(
         private readonly IdempotencyGuard $idempotencyGuard,
-    ) {}
+    ) {
+    }
 
     public function dispatch(DispatchRequest $dto): NotificationBatch
     {

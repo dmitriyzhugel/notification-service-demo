@@ -16,7 +16,7 @@ class ProviderFactory
         $driver = config('notifications.providers.' . $channel->value);
 
         return match ($channel) {
-            Channel::SMS   => $driver === 'mock' ? new MockSmsProvider()   : new SmsProvider(),
+            Channel::SMS   => $driver === 'mock' ? new MockSmsProvider() : new SmsProvider(),
             Channel::Email => $driver === 'mock' ? new MockEmailProvider() : new EmailProvider(),
         };
     }

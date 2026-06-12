@@ -17,4 +17,6 @@ namespace App\Http\Controllers;
  *
  * @OA\Tag(name="Notifications", description="Эндпоинты отправки уведомлений и получения статусов")
  */
-class ApiDocController extends Controller {}
+class ApiDocController extends Controller
+{
+}

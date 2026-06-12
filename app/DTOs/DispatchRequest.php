@@ -13,5 +13,6 @@ readonly class DispatchRequest
         public array    $recipientIds,
         public Priority $priority,
         public ?string  $idempotencyKey,
-    ) {}
+    ) {
+    }
 }

@@ -19,7 +19,8 @@ class NotificationController extends Controller
     public function __construct(
         private readonly NotificationDispatcher $dispatcher,
         private readonly IdempotencyGuard       $idempotencyGuard,
-    ) {}
+    ) {
+    }
 
     /**
      * @OA\Post(
